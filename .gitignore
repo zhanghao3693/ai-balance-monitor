@@ -1,0 +1,7 @@
+# macOS App bundle (binary, not source)
+macos/AI-Balance-Monitor.app/
+
+# macOS metadata
+.DS_Store
+__pycache__/
+*.pyc

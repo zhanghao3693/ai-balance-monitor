@@ -1,0 +1,30 @@
+{
+  "keys": [
+    {
+      "name": "my-deepseek",
+      "key": "sk-your-deepseek-api-key",
+      "platform": "deepseek"
+    },
+    {
+      "name": "my-kimi",
+      "key": "sk-your-kimi-api-key",
+      "platform": "kimi"
+    },
+    {
+      "name": "my-zhipu",
+      "key": "your-zhipu-api-key",
+      "platform": "zhipu"
+    },
+    {
+      "name": "my-minimax",
+      "key": "sk-api-your-minimax-key",
+      "platform": "minimax"
+    },
+    {
+      "name": "my-longcat",
+      "key": "ak-your-longcat-key",
+      "platform": "longcat"
+    }
+  ],
+  "active": "my-deepseek"
+}
