@@ -7,6 +7,7 @@ enum Platform: String, Codable, CaseIterable {
     case zhipu = "zhipu"
     case kimi = "kimi"
     case minimax = "minimax"
+    case longcat = "longcat"
 
     var displayName: String {
         switch self {
@@ -14,6 +15,7 @@ enum Platform: String, Codable, CaseIterable {
         case .zhipu:   return "智谱 AI"
         case .kimi:    return "Kimi"
         case .minimax: return "MiniMax"
+        case .longcat: return "LongCat"
         }
     }
 
@@ -21,8 +23,8 @@ enum Platform: String, Codable, CaseIterable {
         switch self {
         case .deepseek: return "https://api.deepseek.com/user/balance"
         case .kimi:    return "https://api.moonshot.cn/v1/users/me/balance"
-        // Zhipu & MiniMax do not expose public balance REST endpoints for pay-as-you-go accounts.
-        case .zhipu, .minimax: return nil
+        // Zhipu, MiniMax, LongCat do not expose public balance REST endpoints.
+        case .zhipu, .minimax, .longcat: return nil
         }
     }
 
@@ -32,13 +34,14 @@ enum Platform: String, Codable, CaseIterable {
         case .zhipu:   return "https://open.bigmodel.cn/overview"
         case .kimi:    return "https://platform.moonshot.cn/console"
         case .minimax: return "https://platform.minimaxi.com/user-center/payment/balance"
+        case .longcat: return "https://longcat.chat/platform/"
         }
     }
 
     /// Auth header value for this platform
     func authHeader(key: String) -> String {
         switch self {
-        case .deepseek, .zhipu, .kimi, .minimax: return "Bearer \(key)"
+        case .deepseek, .zhipu, .kimi, .minimax, .longcat: return "Bearer \(key)"
         }
     }
 
@@ -48,6 +51,7 @@ enum Platform: String, Codable, CaseIterable {
         case .zhipu:   return "zhipu_icon.png"
         case .kimi:    return "kimi_icon.png"
         case .minimax: return "minimax_icon.png"
+        case .longcat: return "longcat_icon.png"
         }
     }
 
@@ -58,6 +62,7 @@ enum Platform: String, Codable, CaseIterable {
         case .zhipu:   return 2.0   // Zhipu GLM-Flash free / GLM-4 paid ~¥2-8 range
         case .kimi:    return 12.0  // Kimi ~¥12/1M tokens
         case .minimax: return 1.0   // MiniMax M2.5-Lightning free / M2.5 ~¥1/M
+        case .longcat: return 0.0   // LongCat currently free beta
         }
     }
 }
@@ -250,6 +255,8 @@ class DeepSeekMonitor: NSObject, NSApplicationDelegate {
     private var kimiFallbackIcon: NSImage?
     private var minimaxIcon: NSImage?
     private var minimaxFallbackIcon: NSImage?
+    private var longcatIcon: NSImage?
+    private var longcatFallbackIcon: NSImage?
     private var combinedIcon: NSImage?
     private var keyIcons: [String: NSImage] = [:]
     private var loadingIcon: NSImage?
@@ -354,6 +361,7 @@ class DeepSeekMonitor: NSObject, NSApplicationDelegate {
         zhipuIcon   = loadIcon(configDir + "/zhipu_icon.png", size: 14)
         kimiIcon    = loadIcon(configDir + "/kimi_icon.png", size: 14)
         minimaxIcon = loadIcon(configDir + "/minimax_icon.png", size: 14)
+        longcatIcon = loadIcon(configDir + "/longcat_icon.png", size: 14)
 
         // SF Symbol fallback for Zhipu (purple "Z" via symbol)
         let zhipuCfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .bold)
@@ -369,6 +377,11 @@ class DeepSeekMonitor: NSObject, NSApplicationDelegate {
         let minimaxCfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .bold)
         minimaxFallbackIcon = NSImage(systemSymbolName: "m.circle.fill", accessibilityDescription: "MiniMax")?
             .withSymbolConfiguration(minimaxCfg)
+
+        // SF Symbol fallback for LongCat (teal "L")
+        let longcatCfg = NSImage.SymbolConfiguration(pointSize: 14, weight: .bold)
+        longcatFallbackIcon = NSImage(systemSymbolName: "l.circle.fill", accessibilityDescription: "LongCat")?
+            .withSymbolConfiguration(longcatCfg)
 
         preloadKeyIcons()
         rebuildCombinedIcon()
@@ -410,6 +423,7 @@ class DeepSeekMonitor: NSObject, NSApplicationDelegate {
         case .zhipu:   return zhipuIcon ?? zhipuFallbackIcon ?? deepseekIcon
         case .kimi:    return kimiIcon ?? kimiFallbackIcon ?? deepseekIcon
         case .minimax: return minimaxIcon ?? minimaxFallbackIcon ?? deepseekIcon
+        case .longcat: return longcatIcon ?? longcatFallbackIcon ?? deepseekIcon
         }
     }
 
@@ -536,6 +550,7 @@ class DeepSeekMonitor: NSObject, NSApplicationDelegate {
             case .zhipu:   return " 🟣"
             case .kimi:    return " 🟠"
             case .minimax: return " 🟡"
+            case .longcat: return " 🔵"
             default:       return ""
             }
         }()
@@ -665,6 +680,7 @@ class DeepSeekMonitor: NSObject, NSApplicationDelegate {
             case .zhipu:   badge = "🟣"
             case .kimi:    badge = "🟠"
             case .minimax: badge = "🟡"
+            case .longcat: badge = "🩵"
             }
             let item = NSMenuItem(title: "\(badge) \(k.name)", action: #selector(switchKey(_:)), keyEquivalent: "")
             item.target = self
@@ -961,6 +977,11 @@ struct DecodeError: Error, LocalizedError {
             // This case should normally not be reached (balanceURL is nil),
             // but handle gracefully if future endpoint becomes available.
             return .failure(DecodeError(message: "MiniMax暂不支持API余额查询，请在网页控制台查看"))
+        case .longcat:
+            // LongCat free beta has no public balance REST endpoint.
+            // This case should normally not be reached (balanceURL is nil),
+            // but handle gracefully if future endpoint becomes available.
+            return .failure(DecodeError(message: "LongCat暂不支持API余额查询，请在网页控制台查看"))
         }
     }
 
@@ -1031,6 +1052,7 @@ struct DecodeError: Error, LocalizedError {
             case .zhipu:   badge = "ZP"
             case .kimi:    badge = "KM"
             case .minimax: badge = "MM"
+            case .longcat: badge = "LC"
             }
             let maskedKey = masked(k.key)
             let activeMark = (k.name == config.active) ? " ← 当前" : ""
@@ -1066,7 +1088,7 @@ struct DecodeError: Error, LocalizedError {
                         let keyPrefix = rhs[rhs.startIndex..<atIdx]
                         let platSuffix = rhs[rhs.index(after: atIdx)...]
                         let platStr = String(platSuffix).trimmingCharacters(in: .whitespaces)
-                        if ["deepseek", "zhipu", "kimi", "minimax"].contains(platStr.lowercased()) {
+                        if ["deepseek", "zhipu", "kimi", "minimax", "longcat"].contains(platStr.lowercased()) {
                             key = String(keyPrefix)
                             platform = platStr.lowercased()
                         }
